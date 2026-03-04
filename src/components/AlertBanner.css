@@ -1,0 +1,92 @@
+.alert-banner {
+  background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+  color: white;
+  padding: 1rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+  animation: slideDown 0.5s ease, pulse 2s ease-in-out infinite;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+
+.alert-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  font-size: 1.1rem;
+}
+
+.alert-icon {
+  font-size: 1.5rem;
+  animation: shake 0.5s ease infinite;
+}
+
+.alert-text {
+  text-align: center;
+}
+
+.alert-text strong {
+  font-weight: 700;
+  margin-right: 0.5rem;
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.9;
+  }
+}
+
+@keyframes shake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-5px);
+  }
+  75% {
+    transform: translateX(5px);
+  }
+}
+
+@media (max-width: 768px) {
+  .alert-content {
+    font-size: 1rem;
+    gap: 0.5rem;
+  }
+
+  .alert-icon {
+    font-size: 1.2rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .alert-banner {
+    padding: 0.75rem;
+  }
+
+  .alert-content {
+    font-size: 0.9rem;
+    flex-wrap: wrap;
+  }
+
+  .alert-text {
+    flex: 1 1 100%;
+  }
+}

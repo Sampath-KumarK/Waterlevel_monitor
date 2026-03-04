@@ -1,0 +1,174 @@
+.app {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top right, rgba(255, 255, 255, 0.16), transparent 40%),
+    radial-gradient(circle at bottom left, rgba(255, 255, 255, 0.1), transparent 35%),
+    linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  flex-direction: column;
+}
+
+.app-header {
+  text-align: center;
+  padding: 2rem 1rem 1.2rem;
+  color: white;
+}
+
+.app-title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin: 0;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.app-subtitle {
+  font-size: 1.1rem;
+  margin: 0.5rem 0 0;
+  opacity: 0.9;
+}
+
+.app-main {
+  flex: 1;
+  padding: 1rem;
+  max-width: 1200px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.gauge-section {
+  background: rgba(255, 255, 255, 0.97);
+  border-radius: 22px;
+  box-shadow: 0 15px 35px rgba(32, 44, 93, 0.25);
+  margin: 0 auto 2rem;
+  max-width: 720px;
+  padding: 1.25rem 1rem 1.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+.last-updated {
+  text-align: center;
+  color: #5d6d7e;
+  font-size: 0.9rem;
+  margin-top: 0.8rem;
+}
+
+.refresh-info {
+  text-align: center;
+  color: #2e86de;
+  font-size: 0.9rem;
+  margin-top: 0.4rem;
+  font-weight: 500;
+}
+
+.history-section {
+  margin-bottom: 2rem;
+}
+
+.loading {
+  text-align: center;
+  color: white;
+  padding: 4rem 1rem;
+}
+
+.spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  margin: 0 auto 1rem;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.loading p {
+  font-size: 1.2rem;
+  margin: 0;
+}
+
+.error-message {
+  text-align: center;
+  color: white;
+  padding: 4rem 1rem;
+}
+
+.error-message p {
+  font-size: 1.2rem;
+  margin-bottom: 1.5rem;
+}
+
+.retry-button {
+  background: white;
+  color: #667eea;
+  border: none;
+  padding: 0.75rem 2rem;
+  font-size: 1rem;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.retry-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.retry-button:active {
+  transform: translateY(0);
+}
+
+.app-footer {
+  text-align: center;
+  padding: 1.5rem 1rem;
+  color: white;
+  background: rgba(0, 0, 0, 0.18);
+  margin-top: auto;
+  backdrop-filter: blur(4px);
+}
+
+.app-footer p {
+  margin: 0;
+  font-size: 0.9rem;
+  opacity: 0.9;
+}
+
+@media (max-width: 768px) {
+  .app-title {
+    font-size: 2rem;
+  }
+
+  .app-subtitle {
+    font-size: 1rem;
+  }
+
+  .gauge-section {
+    padding: 1rem 0.75rem 1.25rem;
+    border-radius: 18px;
+  }
+}
+
+@media (max-width: 480px) {
+  .app-header {
+    padding: 1.5rem 1rem 0.5rem;
+  }
+
+  .app-title {
+    font-size: 1.75rem;
+  }
+
+  .app-subtitle {
+    font-size: 0.9rem;
+  }
+
+  .gauge-section {
+    padding: 0.9rem 0.5rem 1rem;
+    margin-bottom: 1.5rem;
+  }
+}
+

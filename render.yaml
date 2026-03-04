@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: water-level-backend
+    runtime: node
+    plan: free
+    buildCommand: cd backend && npm install
+    startCommand: cd backend && npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 5000
+      - key: MONGODB_URI
+        sync: false
+      - key: CORS_ORIGIN
+        value: https://water-level-frontend.onrender.com
+
+  - type: static
+    name: water-level-frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: VITE_API_URL
+        value: https://water-level-backend.onrender.com/api
