@@ -1,237 +1,268 @@
 /*
  * ESP32 Water Level Monitoring System
- * 
- * Measures water level using HC-SR04 ultrasonic sensor
- * Sends data to backend API every 30 seconds
- * 
- * Hardware:
- * - ESP32 Dev Board
- * - HC-SR04 Ultrasonic Sensor
- * 
- * Connections:
- * HC-SR04 VCC  -> ESP32 5V
- * HC-SR04 GND  -> ESP32 GND
- * HC-SR04 TRIG -> ESP32 GPIO 5
- * HC-SR04 ECHO -> ESP32 GPIO 18
- * 
- * Required Libraries:
- * - WiFi (built-in)
- * - HTTPClient (built-in)
- * - ArduinoJson (install from Library Manager)
+ * Multi-Tank  +  Motor Control  +  OTA-ready
+ *
+ * Hardware wiring
+ * ──────────────────────────────────────────
+ *  HC-SR04 VCC   →  ESP32 5 V
+ *  HC-SR04 GND   →  ESP32 GND
+ *  HC-SR04 TRIG  →  ESP32 GPIO 5
+ *  HC-SR04 ECHO  →  ESP32 GPIO 18
+ *  RELAY  IN     →  ESP32 GPIO 4
+ *  LED (optional) → ESP32 GPIO 2 (built-in)
+ *
+ * Required Arduino libraries (install from Library Manager)
+ *  • ArduinoJson  v7+
+ *
+ * Board: "ESP32 Dev Module" (or your variant)
  */
 
 #include <WiFi.h>
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
 
-// ============ CONFIGURATION ============
-// Update these values before uploading!
+// ╔════════════════════════════════════════╗
+// ║        *** USER CONFIG ***            ║
+// ║  Change the values below, then upload ║
+// ╚════════════════════════════════════════╝
 
-// WiFi credentials
-const char* ssid = "YOUR_WIFI_SSID";
-const char* password = "YOUR_WIFI_PASSWORD";
+// Wi-Fi
+const char* ssid     = "Sampath";
+const char* password = "1234567890";
 
-// Server URL (update with your Render backend URL)
-const char* serverUrl = "https://your-backend-url.onrender.com/api/water-level/update";
+// Backend URL — replace with your Render / local URL
+// Examples:
+//   Render  → "https://water-level-backend.onrender.com/api/water-level/update"
+//   Local   → "http://192.168.1.100:5000/api/water-level/update"
+const char* serverUrl = "https://water-level-backend.onrender.com/api/water-level/update";
 
-// Device ID (unique identifier for this ESP32)
-const char* deviceId = "ESP32-001";
+// Tank ID — must match the tank registered on the website
+const char* tankId = "tank-1";
 
-// Sensor pins
-const int trigPin = 5;
-const int echoPin = 18;
+// ── Pins ──
+const int trigPin   = 5;
+const int echoPin   = 18;
+const int relayPin  = 4;
+const int ledPin    = 2;   // built-in LED for status blink
 
-// Tank configuration (in centimeters)
-const int tankHeight = 200;  // Total height of your water tank
-const int sensorOffset = 10;  // Distance from sensor to tank top
+// ── Tank dimensions (cm) ──
+const int tankHeight   = 200;  // full water height capacity
+const int sensorOffset = 10;   // gap from sensor face to tank top-edge
 
-// Update interval (milliseconds)
-const unsigned long updateInterval = 30000; // 30 seconds
+// ── Timing ──
+const unsigned long SEND_INTERVAL_MS = 30000;   // upload every 30 s
+const unsigned long WIFI_RETRY_MS    = 60000;   // retry WiFi every 60 s if lost
+const unsigned long HTTP_TIMEOUT_MS  = 10000;   // HTTP request timeout
 
-// ============ GLOBAL VARIABLES ============
-unsigned long lastUpdate = 0;
+// ╔═══════════════════════════════════╗
+// ║           INTERNALS               ║
+// ╚═══════════════════════════════════╝
+unsigned long lastSend      = 0;
+unsigned long lastWifiRetry = 0;
+bool motorOn                = false;
+int  lastWaterLevel         = -1;
+int  consecutiveFails       = 0;
+const int MAX_FAILS         = 5;     // reboot if too many failures
 
+// ── Forward declarations ──
+void connectWiFi();
+int  measureWaterLevel();
+void sendData(int waterLevel);
+void blinkLed(int times, int ms);
+
+// ═══════════════════════════════════
+//                SETUP
+// ═══════════════════════════════════
 void setup() {
-  // Initialize serial communication
   Serial.begin(115200);
-  delay(1000);
-  
-  Serial.println("\n\n=================================");
-  Serial.println("Water Level Monitoring System");
-  Serial.println("ESP32 + HC-SR04");
-  Serial.println("=================================\n");
-  
-  // Initialize sensor pins
-  pinMode(trigPin, OUTPUT);
-  pinMode(echoPin, INPUT);
-  
-  // Connect to WiFi
+  delay(500);
+
+  Serial.println("\n╔══════════════════════════════════╗");
+  Serial.println("║  AquaMonitor  –  ESP32 Firmware  ║");
+  Serial.println("╚══════════════════════════════════╝");
+  Serial.printf("  Tank ID : %s\n", tankId);
+  Serial.printf("  Server  : %s\n", serverUrl);
+  Serial.printf("  Interval: %lu s\n\n", SEND_INTERVAL_MS / 1000);
+
+  pinMode(trigPin,  OUTPUT);
+  pinMode(echoPin,  INPUT);
+  pinMode(relayPin, OUTPUT);
+  pinMode(ledPin,   OUTPUT);
+  digitalWrite(relayPin, LOW);
+  digitalWrite(ledPin,   LOW);
+
   connectWiFi();
-  
-  Serial.println("\nSetup complete!");
-  Serial.println("Starting measurements...\n");
+
+  // Take an immediate first reading
+  lastWaterLevel = measureWaterLevel();
+  sendData(lastWaterLevel);
+  lastSend = millis();
+
+  blinkLed(3, 150);   // 3 quick blinks = ready
+  Serial.println("Setup complete – monitoring started.\n");
 }
 
+// ═══════════════════════════════════
+//                LOOP
+// ═══════════════════════════════════
 void loop() {
-  // Check if it's time to update
-  if (millis() - lastUpdate >= updateInterval) {
-    lastUpdate = millis();
-    
-    // Measure water level
-    int waterLevel = measureWaterLevel();
-    
-    // Send data to server
-    sendData(waterLevel);
+  // ── Reconnect WiFi if lost ──
+  if (WiFi.status() != WL_CONNECTED) {
+    if (millis() - lastWifiRetry >= WIFI_RETRY_MS) {
+      lastWifiRetry = millis();
+      Serial.println("[WiFi] Attempting reconnect...");
+      connectWiFi();
+    }
   }
-  
-  delay(100); // Small delay to prevent busy-waiting
+
+  // ── Periodic sensor read + upload ──
+  if (millis() - lastSend >= SEND_INTERVAL_MS) {
+    lastSend = millis();
+    int level = measureWaterLevel();
+    lastWaterLevel = level;
+    sendData(level);
+  }
+
+  // ── Drive relay ──
+  digitalWrite(relayPin, motorOn ? HIGH : LOW);
+
+  // ── Status LED heartbeat (slow blink when connected) ──
+  digitalWrite(ledPin, (millis() / 1000) % 2 == 0 && WiFi.status() == WL_CONNECTED);
+
+  delay(100);
 }
 
+// ═══════════════════════════════════
+//         WIFI CONNECTION
+// ═══════════════════════════════════
 void connectWiFi() {
-  Serial.print("Connecting to WiFi: ");
-  Serial.println(ssid);
-  
+  Serial.printf("[WiFi] Connecting to \"%s\" ", ssid);
+  WiFi.mode(WIFI_STA);
+  WiFi.setAutoReconnect(true);
   WiFi.begin(ssid, password);
-  
-  int attempts = 0;
-  while (WiFi.status() != WL_CONNECTED && attempts < 30) {
+
+  int tries = 0;
+  while (WiFi.status() != WL_CONNECTED && tries < 30) {
     delay(1000);
-    Serial.print(".");
-    attempts++;
+    Serial.print('.');
+    tries++;
   }
-  
+
   if (WiFi.status() == WL_CONNECTED) {
-    Serial.println("\n✓ WiFi connected!");
-    Serial.print("IP address: ");
-    Serial.println(WiFi.localIP());
-    Serial.print("Signal strength (RSSI): ");
-    Serial.print(WiFi.RSSI());
-    Serial.println(" dBm");
+    Serial.printf("\n[WiFi] Connected!  IP: %s  RSSI: %d dBm\n",
+                  WiFi.localIP().toString().c_str(), WiFi.RSSI());
   } else {
-    Serial.println("\n✗ WiFi connection failed!");
-    Serial.println("Please check your credentials and try again.");
+    Serial.println("\n[WiFi] FAILED – will retry later.");
   }
 }
 
+// ═══════════════════════════════════
+//      ULTRASONIC MEASUREMENT
+// ═══════════════════════════════════
 int measureWaterLevel() {
-  // Take multiple readings for accuracy
-  const int numReadings = 5;
-  long totalDistance = 0;
-  
-  for (int i = 0; i < numReadings; i++) {
-    // Clear trigger pin
+  const int  NUM_SAMPLES = 7;
+  int readings[NUM_SAMPLES];
+  int validCount = 0;
+
+  for (int i = 0; i < NUM_SAMPLES; i++) {
     digitalWrite(trigPin, LOW);
     delayMicroseconds(2);
-    
-    // Send ultrasonic pulse
     digitalWrite(trigPin, HIGH);
     delayMicroseconds(10);
     digitalWrite(trigPin, LOW);
-    
-    // Measure echo duration
-    long duration = pulseIn(echoPin, HIGH, 30000); // 30ms timeout
-    
-    if (duration == 0) {
-      Serial.println("⚠ Sensor timeout - check connections");
-      continue;
+
+    long duration = pulseIn(echoPin, HIGH, 30000);
+    if (duration == 0) continue;            // skip timeouts
+
+    int dist = (int)(duration * 0.0343 / 2.0);
+    if (dist > 0 && dist < 500) {           // sane range check
+      readings[validCount++] = dist;
     }
-    
-    // Calculate distance (speed of sound = 343 m/s = 0.0343 cm/µs)
-    int distance = duration * 0.0343 / 2;
-    totalDistance += distance;
-    
-    delay(50); // Short delay between readings
+    delay(40);
   }
-  
-  // Average distance
-  int avgDistance = totalDistance / numReadings;
-  
-  // Adjust for sensor offset
-  int waterDepth = tankHeight - avgDistance - sensorOffset;
-  
-  // Calculate percentage (0-100%)
-  int waterLevel = map(waterDepth, 0, tankHeight, 0, 100);
-  waterLevel = constrain(waterLevel, 0, 100);
-  
-  // Display readings
-  Serial.println("--- Measurement ---");
-  Serial.print("Distance: ");
-  Serial.print(avgDistance);
-  Serial.println(" cm");
-  Serial.print("Water depth: ");
-  Serial.print(waterDepth);
-  Serial.println(" cm");
-  Serial.print("Water level: ");
-  Serial.print(waterLevel);
-  Serial.println("%");
-  
-  return waterLevel;
+
+  if (validCount == 0) {
+    Serial.println("[Sensor] No valid readings!");
+    return lastWaterLevel >= 0 ? lastWaterLevel : 0;   // keep last known
+  }
+
+  // Simple median (sort then pick middle)
+  for (int i = 0; i < validCount - 1; i++)
+    for (int j = i + 1; j < validCount; j++)
+      if (readings[j] < readings[i]) { int t = readings[i]; readings[i] = readings[j]; readings[j] = t; }
+
+  int medianDist = readings[validCount / 2];
+  int waterDepth = tankHeight - medianDist - sensorOffset;
+  int level      = constrain(map(waterDepth, 0, tankHeight, 0, 100), 0, 100);
+
+  Serial.printf("[Sensor] dist=%d cm  depth=%d cm  level=%d%%\n", medianDist, waterDepth, level);
+  return level;
 }
 
+// ═══════════════════════════════════
+//         SEND DATA TO API
+// ═══════════════════════════════════
 void sendData(int waterLevel) {
-  // Check WiFi connection
   if (WiFi.status() != WL_CONNECTED) {
-    Serial.println("⚠ WiFi disconnected. Reconnecting...");
-    connectWiFi();
+    Serial.println("[HTTP] Skipped – WiFi not connected.");
     return;
   }
-  
+
   HTTPClient http;
-  
-  Serial.println("\n--- Sending to Server ---");
-  Serial.print("URL: ");
-  Serial.println(serverUrl);
-  
   http.begin(serverUrl);
   http.addHeader("Content-Type", "application/json");
-  http.setTimeout(10000); // 10 second timeout
-  
-  // Create JSON payload
-  StaticJsonDocument<256> doc;
-  doc["deviceId"] = deviceId;
+  http.setTimeout(HTTP_TIMEOUT_MS);
+
+  // Build JSON
+  JsonDocument doc;
+  doc["tankId"]     = tankId;
+  doc["deviceId"]   = tankId;
   doc["waterLevel"] = waterLevel;
-  
-  // Add timestamp (optional - server can use its own)
-  // doc["timestamp"] = ""; 
-  
-  String jsonData;
-  serializeJson(doc, jsonData);
-  
-  Serial.print("Payload: ");
-  Serial.println(jsonData);
-  
-  // Send POST request
-  int httpResponseCode = http.POST(jsonData);
-  
-  // Handle response
-  if (httpResponseCode > 0) {
-    Serial.print("✓ Response code: ");
-    Serial.println(httpResponseCode);
-    
-    if (httpResponseCode == 200) {
-      String response = http.getString();
-      Serial.print("Response: ");
-      Serial.println(response);
+
+  String payload;
+  serializeJson(doc, payload);
+
+  Serial.printf("[HTTP] POST %s\n       %s\n", serverUrl, payload.c_str());
+
+  int code = http.POST(payload);
+
+  if (code == 200) {
+    consecutiveFails = 0;
+    String body = http.getString();
+    Serial.printf("[HTTP] 200 OK  %s\n", body.c_str());
+
+    // Parse motor command from response
+    JsonDocument res;
+    if (!deserializeJson(res, body) && res["motor"].is<JsonObject>()) {
+      bool serverMotor = res["motor"]["isOn"] | false;
+      if (serverMotor != motorOn) {
+        motorOn = serverMotor;
+        Serial.printf("[Motor] State changed → %s\n", motorOn ? "ON" : "OFF");
+      }
     }
+    blinkLed(1, 80);                     // quick blink = success
   } else {
-    Serial.print("✗ Error code: ");
-    Serial.println(httpResponseCode);
-    Serial.print("Error: ");
-    Serial.println(http.errorToString(httpResponseCode));
+    consecutiveFails++;
+    Serial.printf("[HTTP] FAIL  code=%d  %s  (fails=%d/%d)\n",
+                  code, http.errorToString(code).c_str(),
+                  consecutiveFails, MAX_FAILS);
+
+    if (consecutiveFails >= MAX_FAILS) {
+      Serial.println("[System] Too many failures – rebooting...");
+      delay(2000);
+      ESP.restart();
+    }
   }
-  
+
   http.end();
-  Serial.println("-------------------\n");
 }
 
-// WiFi event handlers
-void WiFiEvent(WiFiEvent_t event) {
-  switch(event) {
-    case SYSTEM_EVENT_STA_DISCONNECTED:
-      Serial.println("⚠ WiFi disconnected!");
-      break;
-    case SYSTEM_EVENT_STA_GOT_IP:
-      Serial.println("✓ WiFi reconnected!");
-      break;
+// ═══════════════════════════════════
+//           LED HELPER
+// ═══════════════════════════════════
+void blinkLed(int times, int ms) {
+  for (int i = 0; i < times; i++) {
+    digitalWrite(ledPin, HIGH); delay(ms);
+    digitalWrite(ledPin, LOW);  delay(ms);
   }
 }

@@ -1,23 +1,71 @@
 .history-container {
-  max-width: 1200px;
-  margin: 2rem auto;
-  padding: 0 1rem;
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 0;
+}
+
+.history-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
 }
 
 .history-title {
-  font-size: 1.8rem;
+  font-size: 0.78rem;
   font-weight: 600;
-  margin-bottom: 1.5rem;
-  color: #2c3e50;
-  text-align: center;
+  color: var(--color-text-secondary);
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+
+.history-container > .history-title {
+  text-align: left;
+  margin-bottom: 1rem;
+}
+
+.delete-selected-btn {
+  background: color-mix(in srgb, var(--color-danger) 12%, transparent);
+  color: var(--color-danger);
+  border: 1px solid color-mix(in srgb, var(--color-danger) 22%, transparent);
+  padding: 0.4rem 1rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.delete-selected-btn:hover {
+  background: color-mix(in srgb, var(--color-danger) 22%, transparent);
+  transform: translateY(-1px);
+}
+
+.check-col {
+  width: 40px;
+  text-align: center !important;
+}
+
+.check-col input[type="checkbox"] {
+  width: 15px;
+  height: 15px;
+  cursor: pointer;
+  accent-color: var(--color-primary);
+}
+
+.row-selected {
+  background-color: color-mix(in srgb, var(--color-primary) 8%, transparent) !important;
 }
 
 .history-table-wrapper {
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  background: linear-gradient(180deg, var(--color-surface) 0%, var(--color-surface-2) 100%);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
   overflow: hidden;
   overflow-x: auto;
+  box-shadow: var(--shadow-sm);
 }
 
 .history-table {
@@ -27,45 +75,52 @@
 }
 
 .history-table thead {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  background: var(--color-surface-2);
 }
 
 .history-table th {
-  padding: 1rem;
+  padding: 0.85rem 1rem;
   text-align: left;
   font-weight: 600;
   text-transform: uppercase;
-  font-size: 0.85rem;
-  letter-spacing: 0.5px;
+  font-size: 0.7rem;
+  letter-spacing: 0.8px;
+  color: var(--color-text-muted);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .history-table th:first-child {
-  width: 60px;
+  width: 40px;
   text-align: center;
 }
 
 .history-table th:nth-child(2) {
-  width: 150px;
+  width: 55px;
 }
 
 .history-table td {
-  padding: 1rem;
-  border-bottom: 1px solid #ecf0f1;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--color-border);
+  font-size: 0.88rem;
 }
 
 .history-table td:first-child {
   text-align: center;
-  font-weight: 600;
-  color: #7f8c8d;
+}
+
+.history-table td:nth-child(2) {
+  text-align: center;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
 }
 
 .history-row {
-  transition: background-color 0.2s ease;
+  transition: background-color 0.15s ease;
 }
 
 .history-row:hover {
-  background-color: #f8f9fa;
+  background-color: var(--glass);
 }
 
 .history-row:last-child td {
@@ -75,96 +130,103 @@
 .event-badge {
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 1rem;
-  border-radius: 20px;
+  gap: 0.4rem;
+  padding: 0.3rem 0.75rem;
+  border-radius: 6px;
   font-weight: 600;
-  font-size: 0.9rem;
+  font-size: 0.72rem;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 .event-icon {
-  font-size: 1rem;
+  font-size: 0.8rem;
 }
 
 .event-full {
-  background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
-  color: white;
+  background: color-mix(in srgb, var(--color-danger) 12%, transparent);
+  color: var(--color-danger);
+  border: 1px solid color-mix(in srgb, var(--color-danger) 22%, transparent);
 }
 
 .event-empty {
-  background: linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%);
-  color: white;
+  background: color-mix(in srgb, var(--color-text-muted) 12%, transparent);
+  color: var(--color-text-muted);
+  border: 1px solid color-mix(in srgb, var(--color-text-muted) 18%, transparent);
+}
+
+.event-motor-on {
+  background: color-mix(in srgb, var(--color-success) 12%, transparent);
+  color: var(--color-success);
+  border: 1px solid color-mix(in srgb, var(--color-success) 22%, transparent);
+}
+
+.event-motor-off {
+  background: color-mix(in srgb, var(--color-warning) 12%, transparent);
+  color: var(--color-warning);
+  border: 1px solid color-mix(in srgb, var(--color-warning) 22%, transparent);
 }
 
 .timestamp {
-  color: #34495e;
-  font-family: 'Courier New', monospace;
-  font-size: 0.9rem;
+  color: var(--color-text-secondary);
+  font-family: 'Inter', monospace;
+  font-size: 0.82rem;
+  font-variant-numeric: tabular-nums;
 }
 
 .no-history {
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  background: linear-gradient(135deg, var(--color-surface) 0%, var(--color-surface-2) 100%);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
   padding: 3rem 2rem;
   text-align: center;
+  box-shadow: var(--shadow-sm);
 }
 
 .no-history p {
-  color: #7f8c8d;
-  font-size: 1.1rem;
+  color: var(--color-text-muted);
+  font-size: 0.95rem;
   margin: 0;
 }
 
 .history-footer {
-  margin-top: 1rem;
-  text-align: center;
-  color: #7f8c8d;
-  font-size: 0.9rem;
+  margin-top: 0.75rem;
+  text-align: right;
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
 }
 
 @media (max-width: 768px) {
-  .history-container {
-    margin: 1.5rem auto;
-  }
-
-  .history-title {
-    font-size: 1.5rem;
-    margin-bottom: 1rem;
-  }
-
   .history-table {
     min-width: 100%;
   }
 
   .history-table th,
   .history-table td {
-    padding: 0.75rem 0.5rem;
-    font-size: 0.85rem;
+    padding: 0.65rem 0.5rem;
+    font-size: 0.82rem;
   }
 
   .event-badge {
-    padding: 0.4rem 0.8rem;
-    font-size: 0.8rem;
+    padding: 0.25rem 0.6rem;
+    font-size: 0.68rem;
   }
 
   .timestamp {
-    font-size: 0.8rem;
+    font-size: 0.78rem;
   }
 }
 
 @media (max-width: 480px) {
-  .history-table th:first-child,
-  .history-table td:first-child {
+  .history-table th:nth-child(2),
+  .history-table td:nth-child(2) {
     display: none;
   }
 
   .event-badge {
-    padding: 0.3rem 0.6rem;
-    font-size: 0.75rem;
-    gap: 0.3rem;
+    padding: 0.2rem 0.5rem;
+    font-size: 0.65rem;
+    gap: 0.25rem;
   }
 
   .no-history {
@@ -172,6 +234,6 @@
   }
 
   .no-history p {
-    font-size: 1rem;
+    font-size: 0.9rem;
   }
 }

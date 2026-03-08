@@ -4,6 +4,8 @@ import dotenv from 'dotenv';
 import connectDB from './config/database.js';
 import waterLevelRoutes from './routes/waterLevelRoutes.js';
 import historyRoutes from './routes/historyRoutes.js';
+import tankRoutes from './routes/tankRoutes.js';
+import motorRoutes from './routes/motorRoutes.js';
 
 // Load environment variables
 dotenv.config();
@@ -36,6 +38,8 @@ app.use((req, res, next) => {
 // Routes
 app.use('/api/water-level', waterLevelRoutes);
 app.use('/api/history', historyRoutes);
+app.use('/api/tanks', tankRoutes);
+app.use('/api/motor', motorRoutes);
 
 // Health check route
 app.get('/api/health', (req, res) => {

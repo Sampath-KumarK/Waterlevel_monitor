@@ -1,10 +1,15 @@
 import mongoose from 'mongoose';
 
 const historySchema = new mongoose.Schema({
+  tankId: {
+    type: String,
+    required: true,
+    default: 'default'
+  },
   event: {
     type: String,
     required: true,
-    enum: ['FULL', 'EMPTY']
+    enum: ['FULL', 'EMPTY', 'MOTOR_ON', 'MOTOR_OFF']
   },
   timestamp: {
     type: Date,
@@ -13,7 +18,7 @@ const historySchema = new mongoose.Schema({
 });
 
 // Index for faster queries
-historySchema.index({ timestamp: -1 });
+historySchema.index({ tankId: 1, timestamp: -1 });
 
 const History = mongoose.model('History', historySchema);
 
