@@ -6,6 +6,8 @@ import HistoryTable from './components/HistoryTable';
 import MotorControl from './components/MotorControl';
 import TankSelector from './components/TankSelector';
 import ThemeToggle from './components/ThemeToggle';
+import LoginPage from './components/LoginPage';
+import { useAuth } from './context/AuthContext';
 import {
   getCurrentWaterLevel,
   getHistory,
@@ -19,6 +21,8 @@ import {
 } from './services/api';
 
 function App() {
+  const { user, loading: authLoading, logout } = useAuth();
+
   // Tank state
   const [tanks, setTanks] = useState([]);
   const [selectedTankId, setSelectedTankId] = useState(null);
@@ -180,6 +184,21 @@ function App() {
     fetchHistory(selectedTankId);
   };
 
+  if (authLoading) {
+    return (
+      <div className="app" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
+        <div className="loading">
+          <div className="spinner"></div>
+          <p>Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <LoginPage />;
+  }
+
   return (
     <div className="app">
       <AlertBanner status={status} motorOn={motor.isOn} />
@@ -198,6 +217,9 @@ function App() {
             Live
           </div>
           <ThemeToggle theme={theme} onToggle={handleToggleTheme} />
+          <button className="logout-btn" onClick={logout} title="Sign out">
+            Logout
+          </button>
         </div>
       </header>
 

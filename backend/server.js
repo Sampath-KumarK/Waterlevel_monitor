@@ -6,6 +6,7 @@ import waterLevelRoutes from './routes/waterLevelRoutes.js';
 import historyRoutes from './routes/historyRoutes.js';
 import tankRoutes from './routes/tankRoutes.js';
 import motorRoutes from './routes/motorRoutes.js';
+import authRoutes from './routes/authRoutes.js';
 
 // Load environment variables
 dotenv.config();
@@ -36,6 +37,7 @@ app.use((req, res, next) => {
 });
 
 // Routes
+app.use('/api/auth', authRoutes);
 app.use('/api/water-level', waterLevelRoutes);
 app.use('/api/history', historyRoutes);
 app.use('/api/tanks', tankRoutes);
